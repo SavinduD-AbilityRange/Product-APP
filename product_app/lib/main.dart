@@ -1,20 +1,25 @@
 import 'dart:io';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 
 void main() {
-  runApp(MaterialApp(home: ProductTablePage()));
+  runApp(const MaterialApp(
+    debugShowCheckedModeBanner: false,
+    home: ProductTablePage(),
+  ));
 }
 
 class Product {
-  String id;
-  String name;
-  String category;
-  double price;
-  File? image;
-  String date;
+  final String id;
+  final String name;
+  final String category;
+  final double price;
+  final dynamic image; // Can be File (mobile) or Uint8List (web)
+  final String date;
 
   Product({
     required this.id,
@@ -27,7 +32,7 @@ class Product {
 }
 
 class ProductTablePage extends StatefulWidget {
-  const ProductTablePage({super.key});
+  const ProductTablePage({Key? key}) : super(key: key);
 
   @override
   _ProductTablePageState createState() => _ProductTablePageState();
@@ -41,12 +46,23 @@ class _ProductTablePageState extends State<ProductTablePage> {
   final _categoryController = TextEditingController();
   final _priceController = TextEditingController();
 
-  File? _selectedImage;
+  dynamic _selectedImage; // Can be File or Uint8List
   int? _editIndex;
+
+  final Uuid _uuid = const Uuid();
 
   void _pickImage() async {
     final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) setState(() => _selectedImage = File(pickedFile.path));
+    if (pickedFile != null) {
+      final Uint8List bytes = await pickedFile.readAsBytes();
+      setState(() {
+        if (kIsWeb) {
+          _selectedImage = bytes; // Web: store as bytes
+        } else {
+          _selectedImage = File(pickedFile.path); // Mobile: store as File
+        }
+      });
+    }
   }
 
   void _openProductDialog({int? index}) {
@@ -73,40 +89,55 @@ class _ProductTablePageState extends State<ProductTablePage> {
           child: Form(
             key: _formKey,
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 GestureDetector(
                   onTap: _pickImage,
-                  child: _selectedImage != null
-                      ? Image.file(_selectedImage!, height: 100)
-                      : Container(
-                          height: 100,
-                          color: Colors.grey[300],
-                          child: Icon(Icons.add_a_photo),
-                        ),
+                  child: Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: _selectedImage != null
+                        ? (kIsWeb)
+                            ? Image.memory(_selectedImage, fit: BoxFit.cover)
+                            : Image.file(_selectedImage, fit: BoxFit.cover)
+                        : const Icon(Icons.add_a_photo, size: 40, color: Colors.grey),
+                  ),
                 ),
+                const SizedBox(height: 16),
                 TextFormField(
                   controller: _nameController,
-                  decoration: InputDecoration(labelText: "Product Name"),
-                  validator: (value) => value!.isEmpty ? "Enter product name" : null,
+                  decoration: const InputDecoration(labelText: "Product Name"),
+                  validator: (value) => value?.isEmpty == true ? "Enter product name" : null,
                 ),
                 TextFormField(
                   controller: _categoryController,
-                  decoration: InputDecoration(labelText: "Category"),
-                  validator: (value) => value!.isEmpty ? "Enter category" : null,
+                  decoration: const InputDecoration(labelText: "Category"),
+                  validator: (value) => value?.isEmpty == true ? "Enter category" : null,
                 ),
                 TextFormField(
                   controller: _priceController,
-                  decoration: InputDecoration(labelText: "Price"),
+                  decoration: const InputDecoration(labelText: "Price"),
                   keyboardType: TextInputType.number,
-                  validator: (value) =>
-                      value!.isEmpty || double.tryParse(value) == null ? "Enter valid price" : null,
+                  validator: (value) {
+                    if (value?.isEmpty == true || double.tryParse(value!) == null) {
+                      return "Enter a valid price";
+                    }
+                    return null;
+                  },
                 ),
               ],
             ),
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text("Cancel")),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
           ElevatedButton(
             onPressed: () {
               if (_formKey.currentState!.validate()) {
@@ -115,31 +146,26 @@ class _ProductTablePageState extends State<ProductTablePage> {
                 final price = double.parse(_priceController.text);
                 final now = DateFormat('yyyy-MM-dd').format(DateTime.now());
 
+                final product = Product(
+                  id: _editIndex != null ? _products[_editIndex!].id : _uuid.v4().substring(0, 8),
+                  name: name,
+                  category: category,
+                  price: price,
+                  image: _selectedImage,
+                  date: now,
+                );
+
                 if (_editIndex != null) {
-                  _products[_editIndex!] = Product(
-                    id: _products[_editIndex!].id,
-                    name: name,
-                    category: category,
-                    price: price,
-                    image: _selectedImage,
-                    date: now,
-                  );
+                  _products[_editIndex!] = product;
                 } else {
-                  _products.add(Product(
-                    id: Uuid().v4().substring(0, 8),
-                    name: name,
-                    category: category,
-                    price: price,
-                    image: _selectedImage,
-                    date: now,
-                  ));
+                  _products.add(product);
                 }
 
                 setState(() {});
                 Navigator.pop(context);
               }
             },
-            child: Text("Save"),
+            child: Text(_editIndex == null ? "Add" : "Update"),
           ),
         ],
       ),
@@ -150,18 +176,124 @@ class _ProductTablePageState extends State<ProductTablePage> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text("Confirm Deletion"),
-        content: Text("Are you sure you want to delete this product?"),
+        title: const Text("Confirm Deletion"),
+        content: const Text("Are you sure you want to delete this product?"),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text("Cancel")),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
           ElevatedButton(
             onPressed: () {
               setState(() => _products.removeAt(index));
               Navigator.pop(context);
             },
-            child: Text("Delete"),
+            child: const Text("Delete"),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildProductCards() {
+    return ListView.builder(
+      padding: const EdgeInsets.all(12),
+      itemCount: _products.length,
+      itemBuilder: (context, index) {
+        final product = _products[index];
+        return Card(
+          elevation: 3,
+          margin: const EdgeInsets.symmetric(vertical: 6),
+          child: ListTile(
+            leading: product.image != null
+                ? (kIsWeb)
+                    ? Image.memory(product.image, width: 60, height: 60, fit: BoxFit.cover)
+                    : Image.file(product.image, width: 60, height: 60, fit: BoxFit.cover)
+                : const Icon(Icons.image, size: 60, color: Colors.grey),
+            title: Text(
+              product.name,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            subtitle: Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("ID: ${product.id}", style: const TextStyle(fontSize: 12)),
+                  Text("Category: ${product.category}", style: const TextStyle(fontSize: 12)),
+                  Text("Price: \$${product.price.toStringAsFixed(2)}", style: const TextStyle(fontSize: 12)),
+                  Text("Date: ${product.date}", style: const TextStyle(fontSize: 12)),
+                ],
+              ),
+            ),
+            trailing: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.edit, color: Colors.orange, size: 20),
+                  onPressed: () => _openProductDialog(index: index),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete, color: Colors.red, size: 20),
+                  onPressed: () => _deleteProduct(index),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildProductTable() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: DataTable(
+        columnSpacing: 24,
+        headingRowHeight: 48,
+        dataRowHeight: 64,
+        columns: const [
+          DataColumn(label: Text("Image")),
+          DataColumn(label: Text("Product ID")),
+          DataColumn(label: Text("Name")),
+          DataColumn(label: Text("Category")),
+          DataColumn(label: Text("Price")),
+          DataColumn(label: Text("Date")),
+          DataColumn(label: Text("Actions")),
+        ],
+        rows: _products.asMap().entries.map((entry) {
+          final index = entry.key;
+          final product = entry.value;
+          return DataRow(
+            cells: [
+              DataCell(
+                product.image != null
+                    ? (kIsWeb)
+                        ? Image.memory(product.image, width: 50, height: 50, fit: BoxFit.cover)
+                        : Image.file(product.image, width: 50, height: 50, fit: BoxFit.cover)
+                    : const Icon(Icons.image, size: 30),
+              ),
+              DataCell(Text(product.id, style: const TextStyle(fontSize: 14))),
+              DataCell(Text(product.name)),
+              DataCell(Text(product.category)),
+              DataCell(Text('\$${product.price.toStringAsFixed(2)}')),
+              DataCell(Text(product.date)),
+              DataCell(Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.edit, color: Colors.orange),
+                    onPressed: () => _openProductDialog(index: index),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete, color: Colors.red),
+                    onPressed: () => _deleteProduct(index),
+                  ),
+                ],
+              )),
+            ],
+          );
+        }).toList(),
       ),
     );
   }
@@ -169,56 +301,41 @@ class _ProductTablePageState extends State<ProductTablePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Product Manager")),
+      appBar: AppBar(
+        title: const Text("Product Manager"),
+        centerTitle: false,
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _openProductDialog(),
-        child: Icon(Icons.add),
+        tooltip: 'Add Product',
+        child: const Icon(Icons.add),
       ),
-      body: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: DataTable(
-          columnSpacing: 16,
-          columns: const [
-            DataColumn(label: Text("Image")),
-            DataColumn(label: Text("Product ID")),
-            DataColumn(label: Text("Name")),
-            DataColumn(label: Text("Category")),
-            DataColumn(label: Text("Price")),
-            DataColumn(label: Text("Date")),
-            DataColumn(label: Text("Actions")),
-          ],
-          rows: _products
-              .asMap()
-              .entries
-              .map((entry) {
-                final index = entry.key;
-                final product = entry.value;
-                return DataRow(cells: [
-                  DataCell(product.image != null
-                      ? Image.file(product.image!, width: 50, height: 50)
-                      : Icon(Icons.image)),
-                  DataCell(Text(product.id)),
-                  DataCell(Text(product.name)),
-                  DataCell(Text(product.category)),
-                  DataCell(Text(product.price.toStringAsFixed(2))),
-                  DataCell(Text(product.date)),
-                  DataCell(Row(
-                    children: [
-                      IconButton(
-                        icon: Icon(Icons.edit, color: Colors.orange),
-                        onPressed: () => _openProductDialog(index: index),
-                      ),
-                      IconButton(
-                        icon: Icon(Icons.delete, color: Colors.red),
-                        onPressed: () => _deleteProduct(index),
-                      ),
-                    ],
-                  )),
-                ]);
-              })
-              .toList(),
-        ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth < 600) {
+            // Mobile: Cards
+            return _products.isEmpty
+                ? const Center(child: Text("No products added yet. Tap + to add one."))
+                : _buildProductCards();
+          } else {
+            // Desktop/Tablet: Table
+            return Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: _products.isEmpty
+                  ? const Center(child: Text("No products added yet."))
+                  : _buildProductTable(),
+            );
+          }
+        },
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _categoryController.dispose();
+    _priceController.dispose();
+    super.dispose();
   }
 }
