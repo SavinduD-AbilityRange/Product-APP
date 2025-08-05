@@ -26,16 +26,42 @@ class _ProductListScreenState extends State<ProductListScreen> {
   }
 
   void _deleteProduct(int id) async {
-    bool success = await ApiService.deleteProduct(id);
-    if (success) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Product deleted')));
-      _refreshProducts();
-    } else {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Failed to delete product')));
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text("Confirm Deletion"),
+            content: const Text(
+              "Are you sure you want to delete this product?",
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text("Cancel"),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text(
+                  "Delete",
+                  style: TextStyle(color: Colors.red),
+                ),
+              ),
+            ],
+          ),
+    );
+
+    if (confirm == true) {
+      bool success = await ApiService.deleteProduct(id);
+      if (success) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Product deleted')));
+        _refreshProducts();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to delete product')),
+        );
+      }
     }
   }
 
