@@ -75,8 +75,14 @@ class _ProductListScreenState extends State<ProductListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.purple[50],
       appBar: AppBar(
-        title: const Text('My Products'),
+        backgroundColor: Colors.deepPurple,
+        foregroundColor: Colors.white,
+        title: const Text(
+          'My Products',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -211,7 +217,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: Colors.deepPurple,
+        foregroundColor: Colors.white,
         onPressed: () async {
           await Navigator.push(
             context,
@@ -219,7 +227,8 @@ class _ProductListScreenState extends State<ProductListScreen> {
           );
           _loadProducts();
         },
-        child: const Icon(Icons.add),
+        icon: const Icon(Icons.add),
+        label: const Text('Add Product'),
       ),
     );
   }
