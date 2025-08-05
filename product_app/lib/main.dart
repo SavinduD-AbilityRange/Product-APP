@@ -96,25 +96,6 @@ class MainMenu extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 40),
-              const Card(
-                child: Padding(
-                  padding: EdgeInsets.all(16.0),
-                  child: Column(
-                    children: [
-                      Text(
-                        'Frontend-Only Application',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      SizedBox(height: 8),
-                      Text('• Connects to your external backend API'),
-                      Text('• No backend code included'),
-                      Text('• Configure API URL in Backend Setup'),
-                      Text('• Supports phpMyAdmin/MySQL backends'),
-                    ],
-                  ),
-                ),
-              ),
             ],
           ),
         ),

@@ -194,6 +194,8 @@ class HttpApiService {
             Uri.parse('$baseUrl/products/$id'),
           );
 
+          ApiConfig.logDebug('Sending PUT request to: $baseUrl/products/$id');
+
           // Add text fields (only if provided)
           if (name != null) request.fields['name'] = name;
           if (category != null) request.fields['category'] = category;
@@ -201,6 +203,8 @@ class HttpApiService {
           if (description != null) request.fields['description'] = description;
           if (stockQuantity != null)
             request.fields['stock_quantity'] = stockQuantity.toString();
+
+          ApiConfig.logDebug('Update request fields: ${request.fields}');
 
           // Handle image upload
           if (image != null) {
@@ -221,6 +225,9 @@ class HttpApiService {
           final response = await request.send().timeout(ApiConfig.timeout);
           final responseBody = await response.stream.bytesToString();
 
+          ApiConfig.logDebug('Update response status: ${response.statusCode}');
+          ApiConfig.logDebug('Update response body: $responseBody');
+
           if (response.statusCode == 200) {
             final responseData = json.decode(responseBody);
 
@@ -236,6 +243,10 @@ class HttpApiService {
 
             ApiConfig.logDebug('✅ Product updated successfully');
             return Product.fromJson(productData);
+          } else {
+            ApiConfig.logDebug(
+              '❌ Update failed with status ${response.statusCode}: $responseBody',
+            );
           }
         } catch (e) {
           ApiConfig.logDebug('❌ Error updating product at $baseUrl: $e');

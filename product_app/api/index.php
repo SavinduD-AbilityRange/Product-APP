@@ -183,6 +183,11 @@ function updateProduct($pdo, $id) {
             $input = $_POST;
         }
         
+        // For PUT requests with multipart data, parse manually
+        if (empty($input) && $_SERVER['REQUEST_METHOD'] === 'PUT') {
+            $input = parseMultipartData();
+        }
+        
         $fields = [];
         $values = [];
         
@@ -266,5 +271,30 @@ function getCategories($pdo) {
         http_response_code(500);
         echo json_encode(['error' => 'Failed to fetch categories: ' . $e->getMessage()]);
     }
+}
+
+// Parse multipart form data for PUT requests
+function parseMultipartData() {
+    $boundary = substr($_SERVER['CONTENT_TYPE'], strpos($_SERVER['CONTENT_TYPE'], "boundary=") + 9);
+    $boundary = '--' . $boundary;
+    
+    $input = file_get_contents('php://input');
+    $parts = explode($boundary, $input);
+    $data = [];
+    
+    foreach ($parts as $part) {
+        if (strpos($part, 'Content-Disposition: form-data;') !== false) {
+            // Extract field name
+            preg_match('/name="([^"]*)"/', $part, $matches);
+            if (isset($matches[1])) {
+                $name = $matches[1];
+                // Extract value (everything after the double newline)
+                $value = trim(substr($part, strpos($part, "\r\n\r\n") + 4));
+                $data[$name] = $value;
+            }
+        }
+    }
+    
+    return $data;
 }
 ?>
