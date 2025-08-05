@@ -5,7 +5,7 @@ import '../models/product.dart';
 import '../services/api_service.dart';
 
 class AddEditProductScreen extends StatefulWidget {
-  final Product? product; // If null = add mode; else = edit mode
+  final Product? product;
   const AddEditProductScreen({super.key, this.product});
 
   @override
@@ -27,7 +27,6 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
       _nameController.text = widget.product!.name;
       _categoryController.text = widget.product!.category;
       _priceController.text = widget.product!.price.toString();
-      // For now, assume image is already uploaded; no need to preload it
     }
   }
 
@@ -48,7 +47,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
       name: _nameController.text.trim(),
       category: _categoryController.text.trim(),
       price: double.parse(_priceController.text.trim()),
-      image: '', // The backend will set this
+      image: '',
       date: DateTime.now().toIso8601String(),
     );
 
@@ -67,7 +66,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(widget.product == null ? 'Added' : 'Updated')),
       );
-      Navigator.pop(context, true); // return to refresh list
+      Navigator.pop(context, true);
     } else {
       ScaffoldMessenger.of(
         context,
@@ -90,24 +89,26 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
               GestureDetector(
                 onTap: _pickImage,
                 child:
-                    widget.product != null
-                        ? widget.product?.image != ""
-                            ? Image.network(
-                              "http://10.0.2.2:8000/" + widget.product!.image,
-                              height: 150,
-                              fit: BoxFit.cover,
-                            )
-                            : Container(
-                              height: 150,
-                              color: Colors.grey[200],
-                              child: const Icon(Icons.image, size: 80),
-                            )
+                    _imageFile != null
+                        ? Image.file(
+                          _imageFile!,
+                          height: 150,
+                          fit: BoxFit.cover,
+                        )
+                        : widget.product != null &&
+                            widget.product!.image.isNotEmpty
+                        ? Image.network(
+                          "http://10.0.2.2:8000/" + widget.product!.image,
+                          height: 150,
+                          fit: BoxFit.cover,
+                        )
                         : Container(
                           height: 150,
                           color: Colors.grey[200],
                           child: const Icon(Icons.image, size: 80),
                         ),
               ),
+
               const SizedBox(height: 16),
               TextFormField(
                 controller: _nameController,

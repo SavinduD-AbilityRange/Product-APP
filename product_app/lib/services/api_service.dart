@@ -33,7 +33,6 @@ class ApiService {
 
     var response = await request.send();
 
-    // 👇 NEW: Read and print the response body
     final responseBody = await response.stream.bytesToString();
     print("Response Status: ${response.statusCode}");
     print("Response Body: $responseBody");
@@ -61,7 +60,6 @@ class ApiService {
 
     var response = await request.send();
 
-    // 👇 NEW: Read and print the response body
     final responseBody = await response.stream.bytesToString();
     print("Response Status: ${response.statusCode}");
     print("Response Body: $responseBody");
