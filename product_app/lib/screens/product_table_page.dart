@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../models/product.dart';
 import '../services/api_service.dart';
+import '../services/http_api_service.dart';
 import '../widgets/product_table.dart';
 import '../widgets/product_card_list.dart';
 import '../widgets/product_grid_view.dart';
@@ -20,7 +21,12 @@ class ProductTablePage extends StatefulWidget {
 class _ProductTablePageState extends State<ProductTablePage> {
   final List<Product> _products = [];
   final _formKey = GlobalKey<FormState>();
-  final ApiService _apiService = ApiService();
+
+  // 🔧 CONFIGURATION: Choose your data source
+  // 'local' = In-memory storage (for testing)
+  // 'backend' = Your external backend API
+  final String _dataSource = 'backend'; // Now using real-time backend API
+  late final dynamic _apiService;
 
   final _nameController = TextEditingController();
   final _categoryController = TextEditingController();
@@ -37,8 +43,17 @@ class _ProductTablePageState extends State<ProductTablePage> {
   @override
   void initState() {
     super.initState();
+    _initializeService();
     _loadProducts();
     _loadCategories();
+  }
+
+  void _initializeService() {
+    if (_dataSource == 'backend') {
+      _apiService = HttpApiService(); // Use your external backend
+    } else {
+      _apiService = ApiService(); // Use local storage for testing
+    }
   }
 
   Future<void> _loadProducts() async {
