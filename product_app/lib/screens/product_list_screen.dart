@@ -71,13 +71,18 @@ class _ProductListScreenState extends State<ProductListScreen> {
                 margin: const EdgeInsets.all(10),
                 elevation: 4,
                 child: ListTile(
-                  leading: Image.network(
-                    product.image,
-                    width: 60,
-                    height: 60,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => const Icon(Icons.image),
-                  ),
+                  leading:
+                      product.image.isNotEmpty
+                          ? Image.network(
+                            "http://10.0.2.2:8000/" + product.image,
+                            width: 60,
+                            height: 60,
+                            fit: BoxFit.cover,
+                            errorBuilder:
+                                (_, __, ___) => const Icon(Icons.broken_image),
+                          )
+                          : const Icon(Icons.image),
+
                   title: Text(product.name),
                   subtitle: Text(
                     "${product.category} • Rs. ${product.price}",

@@ -48,23 +48,26 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
       name: _nameController.text.trim(),
       category: _categoryController.text.trim(),
       price: double.parse(_priceController.text.trim()),
-      image:
-          'https://via.placeholder.com/150', // Placeholder (replace with upload logic)
+      image: '', // The backend will set this
       date: DateTime.now().toIso8601String(),
     );
 
     bool success;
     if (widget.product == null) {
-      success = await ApiService.addProduct(product);
+      success = await ApiService.addProduct(product, _imageFile);
     } else {
-      success = await ApiService.updateProduct(product.id!, product);
+      success = await ApiService.updateProduct(
+        widget.product!.id!,
+        product,
+        _imageFile,
+      );
     }
 
     if (success && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(widget.product == null ? 'Added' : 'Updated')),
       );
-      Navigator.pop(context, true); // return success to refresh list
+      Navigator.pop(context, true); // return to refresh list
     } else {
       ScaffoldMessenger.of(
         context,
@@ -87,12 +90,18 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
               GestureDetector(
                 onTap: _pickImage,
                 child:
-                    _imageFile != null
-                        ? Image.file(
-                          _imageFile!,
-                          height: 150,
-                          fit: BoxFit.cover,
-                        )
+                    widget.product != null
+                        ? widget.product?.image != ""
+                            ? Image.network(
+                              "http://10.0.2.2:8000/" + widget.product!.image,
+                              height: 150,
+                              fit: BoxFit.cover,
+                            )
+                            : Container(
+                              height: 150,
+                              color: Colors.grey[200],
+                              child: const Icon(Icons.image, size: 80),
+                            )
                         : Container(
                           height: 150,
                           color: Colors.grey[200],

@@ -18,11 +18,11 @@ class Product {
   factory Product.fromJson(Map<String, dynamic> json) {
     return Product(
       id: json['id'],
-      name: json['name'],
-      category: json['category'],
-      price: double.parse(json['price'].toString()),
-      image: json['image'],
-      date: json['date'],
+      name: json['name'] ?? 'Unnamed',
+      category: json['category'] ?? 'Uncategorized',
+      price: double.tryParse(json['price']?.toString() ?? '') ?? 0.0,
+      image: json['image'] ?? '', // fallback to empty string
+      date: json['date'] ?? '',
     );
   }
 
