@@ -158,8 +158,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                 Image.file(imageFile!, height: 180, fit: BoxFit.cover)
               else if (imageFile != null && kIsWeb)
                 Image.network(
-                  // For web, we'd need to handle this differently
-                  // For now, show placeholder
+                 
                   '',
                   height: 180,
                   fit: BoxFit.cover,
