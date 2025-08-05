@@ -103,6 +103,8 @@ class HttpApiService {
             Uri.parse('$baseUrl/products'),
           );
 
+          ApiConfig.logDebug('Sending POST request to: $baseUrl/products');
+
           // Add text fields
           request.fields['name'] = name;
           request.fields['category'] = category;
@@ -110,22 +112,33 @@ class HttpApiService {
           request.fields['description'] = description ?? '';
           request.fields['stock_quantity'] = stockQuantity.toString();
 
+          ApiConfig.logDebug('Request fields: ${request.fields}');
+
           // Handle image upload
           if (image != null) {
             if (kIsWeb && image is Uint8List) {
-              // Web: Convert Uint8List to base64
-              final base64Image = base64Encode(image);
-              request.fields['image_base64'] = base64Image;
+              // Web: Instead of storing huge base64, store just a filename
+              final timestamp = DateTime.now().millisecondsSinceEpoch;
+              final filename = 'web_upload_$timestamp.jpg';
+              request.fields['image'] = filename;
+              ApiConfig.logDebug('Added image filename: $filename');
+              // TODO: In a real app, you would upload the image to a file server
+              // For now, we just store the filename reference
             } else if (!kIsWeb && image.path != null) {
-              // Mobile: Use file path
-              request.files.add(
-                await http.MultipartFile.fromPath('image', image.path),
-              );
+              // Mobile: Extract filename from path
+              final filename = image.path.split('/').last;
+              request.fields['image'] = filename;
+              ApiConfig.logDebug('Added image filename: $filename');
+              // For file upload, you would add the actual file:
+              // request.files.add(await http.MultipartFile.fromPath('image_file', image.path));
             }
           }
 
           final response = await request.send().timeout(ApiConfig.timeout);
           final responseBody = await response.stream.bytesToString();
+
+          ApiConfig.logDebug('Response status: ${response.statusCode}');
+          ApiConfig.logDebug('Response body: $responseBody');
 
           if (response.statusCode == 200 || response.statusCode == 201) {
             final responseData = json.decode(responseBody);
@@ -143,6 +156,10 @@ class HttpApiService {
 
             ApiConfig.logDebug('✅ Product created successfully');
             return Product.fromJson(productData);
+          } else {
+            ApiConfig.logDebug(
+              '❌ Create failed with status ${response.statusCode}: $responseBody',
+            );
           }
         } catch (e) {
           ApiConfig.logDebug('❌ Error creating product at $baseUrl: $e');
@@ -188,12 +205,16 @@ class HttpApiService {
           // Handle image upload
           if (image != null) {
             if (kIsWeb && image is Uint8List) {
-              final base64Image = base64Encode(image);
-              request.fields['image_base64'] = base64Image;
+              // Web: Store filename instead of base64
+              final timestamp = DateTime.now().millisecondsSinceEpoch;
+              final filename = 'web_upload_$timestamp.jpg';
+              request.fields['image'] = filename;
+              ApiConfig.logDebug('Updated image filename: $filename');
             } else if (!kIsWeb && image.path != null) {
-              request.files.add(
-                await http.MultipartFile.fromPath('image', image.path),
-              );
+              // Mobile: Extract filename from path
+              final filename = image.path.split('/').last;
+              request.fields['image'] = filename;
+              ApiConfig.logDebug('Updated image filename: $filename');
             }
           }
 
