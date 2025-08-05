@@ -12,9 +12,11 @@ class HttpApiService {
       ApiConfig.logDebug(
         'Testing connection to your backend at localhost:8001...',
       );
+      ApiConfig.logDebug('Platform-specific URLs: ${ApiConfig.fallbackUrls}');
 
       for (String baseUrl in ApiConfig.fallbackUrls) {
         try {
+          ApiConfig.logDebug('Attempting connection to: $baseUrl');
           // Test the /products endpoint since that's what your backend serves
           final response = await http
               .get(Uri.parse('$baseUrl/products'), headers: ApiConfig.headers)
@@ -25,6 +27,10 @@ class HttpApiService {
             final data = json.decode(response.body);
             ApiConfig.logDebug('Backend response: ${data.toString()}');
             return true;
+          } else {
+            ApiConfig.logDebug(
+              '❌ Connection failed to $baseUrl: HTTP ${response.statusCode}',
+            );
           }
         } catch (e) {
           ApiConfig.logDebug('❌ Connection failed to $baseUrl: $e');

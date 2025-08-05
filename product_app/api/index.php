@@ -188,6 +188,11 @@ function updateProduct($pdo, $id) {
             $input = parseMultipartData();
         }
         
+        // Debug logging
+        error_log("UPDATE DEBUG - Content-Type: " . ($_SERVER['CONTENT_TYPE'] ?? 'none'));
+        error_log("UPDATE DEBUG - Input data: " . json_encode($input));
+        error_log("UPDATE DEBUG - POST data: " . json_encode($_POST));
+        
         $fields = [];
         $values = [];
         
@@ -275,26 +280,57 @@ function getCategories($pdo) {
 
 // Parse multipart form data for PUT requests
 function parseMultipartData() {
-    $boundary = substr($_SERVER['CONTENT_TYPE'], strpos($_SERVER['CONTENT_TYPE'], "boundary=") + 9);
-    $boundary = '--' . $boundary;
+    $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
+    
+    // Extract boundary from Content-Type header
+    if (!preg_match('/boundary=([^;]+)/', $contentType, $matches)) {
+        error_log("MULTIPART DEBUG - No boundary found in Content-Type: $contentType");
+        return [];
+    }
+    
+    $boundary = '--' . trim($matches[1]);
+    error_log("MULTIPART DEBUG - Using boundary: $boundary");
     
     $input = file_get_contents('php://input');
+    error_log("MULTIPART DEBUG - Raw input length: " . strlen($input));
+    
+    // Split by boundary
     $parts = explode($boundary, $input);
     $data = [];
     
-    foreach ($parts as $part) {
-        if (strpos($part, 'Content-Disposition: form-data;') !== false) {
+    foreach ($parts as $index => $part) {
+        // Skip empty parts and the final boundary
+        if (empty(trim($part)) || $part === '--') {
+            continue;
+        }
+        
+        // Look for Content-Disposition header
+        if (strpos($part, 'Content-Disposition:') !== false) {
             // Extract field name
-            preg_match('/name="([^"]*)"/', $part, $matches);
-            if (isset($matches[1])) {
-                $name = $matches[1];
-                // Extract value (everything after the double newline)
-                $value = trim(substr($part, strpos($part, "\r\n\r\n") + 4));
-                $data[$name] = $value;
+            if (preg_match('/name="([^"]*)"/', $part, $nameMatches)) {
+                $name = $nameMatches[1];
+                
+                // Find the value after headers (after \r\n\r\n or \n\n)
+                $headerEnd = strpos($part, "\r\n\r\n");
+                if ($headerEnd === false) {
+                    $headerEnd = strpos($part, "\n\n");
+                    $offset = 2;
+                } else {
+                    $offset = 4;
+                }
+                
+                if ($headerEnd !== false) {
+                    $value = substr($part, $headerEnd + $offset);
+                    // Remove trailing boundary markers and whitespace
+                    $value = trim($value, "\r\n -");
+                    $data[$name] = $value;
+                    error_log("MULTIPART DEBUG - Parsed field '$name' = '$value'");
+                }
             }
         }
     }
     
+    error_log("MULTIPART DEBUG - Final parsed data: " . json_encode($data));
     return $data;
 }
 ?>
