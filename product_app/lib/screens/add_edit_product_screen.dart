@@ -64,13 +64,17 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
 
     if (success && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(widget.product == null ? 'Added' : 'Updated')),
+        SnackBar(
+          content: Text(
+            widget.product == null ? '✅ Product Added' : '✅ Product Updated',
+          ),
+        ),
       );
       Navigator.pop(context, true);
     } else {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Error saving product')));
+      ).showSnackBar(const SnackBar(content: Text('❌ Error saving product')));
     }
   }
 
@@ -79,66 +83,129 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
     final isEditing = widget.product != null;
 
     return Scaffold(
-      appBar: AppBar(title: Text(isEditing ? 'Edit Product' : 'Add Product')),
-      body: Padding(
+      appBar: AppBar(
+        title: Text(isEditing ? '✏️ Edit Product' : '➕ Add Product'),
+        backgroundColor: Colors.teal,
+        elevation: 3,
+      ),
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            children: [
-              GestureDetector(
-                onTap: _pickImage,
-                child:
-                    _imageFile != null
-                        ? Image.file(
-                          _imageFile!,
-                          height: 150,
-                          fit: BoxFit.cover,
-                        )
-                        : widget.product != null &&
-                            widget.product!.image.isNotEmpty
-                        ? Image.network(
-                          "http://10.0.2.2:8000/" + widget.product!.image,
-                          height: 150,
-                          fit: BoxFit.cover,
-                        )
-                        : Container(
-                          height: 150,
-                          color: Colors.grey[200],
-                          child: const Icon(Icons.image, size: 80),
-                        ),
-              ),
+        child: Card(
+          elevation: 5,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                children: [
+                  GestureDetector(
+                    onTap: _pickImage,
+                    child: Container(
+                      width: double.infinity,
+                      height: 180,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[200],
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey.shade400),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child:
+                            _imageFile != null
+                                ? Image.file(_imageFile!, fit: BoxFit.cover)
+                                : widget.product != null &&
+                                    widget.product!.image.isNotEmpty
+                                ? Image.network(
+                                  "http://10.0.2.2:8000/${widget.product!.image}",
+                                  fit: BoxFit.cover,
+                                )
+                                : const Center(
+                                  child: Icon(
+                                    Icons.image,
+                                    size: 60,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
 
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(labelText: 'Product Name'),
-                validator:
-                    (value) => value!.isEmpty ? 'Enter product name' : null,
+                  // Product Name
+                  TextFormField(
+                    controller: _nameController,
+                    decoration: InputDecoration(
+                      labelText: 'Product Name',
+                      prefixIcon: const Icon(Icons.shopping_bag),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    validator:
+                        (value) =>
+                            value!.isEmpty ? 'Please enter product name' : null,
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Category
+                  TextFormField(
+                    controller: _categoryController,
+                    decoration: InputDecoration(
+                      labelText: 'Category',
+                      prefixIcon: const Icon(Icons.category),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    validator:
+                        (value) =>
+                            value!.isEmpty ? 'Please enter category' : null,
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Price
+                  TextFormField(
+                    controller: _priceController,
+                    decoration: InputDecoration(
+                      labelText: 'Price',
+                      prefixIcon: const Icon(Icons.attach_money),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    keyboardType: TextInputType.number,
+                    validator:
+                        (value) =>
+                            value!.isEmpty
+                                ? 'Please enter price'
+                                : (double.tryParse(value) == null
+                                    ? 'Enter a valid number'
+                                    : null),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        backgroundColor: Colors.teal,
+                      ),
+                      onPressed: _saveProduct,
+                      icon: Icon(isEditing ? Icons.update : Icons.add),
+                      label: Text(isEditing ? 'Update Product' : 'Add Product'),
+                    ),
+                  ),
+                ],
               ),
-              TextFormField(
-                controller: _categoryController,
-                decoration: const InputDecoration(labelText: 'Category'),
-                validator: (value) => value!.isEmpty ? 'Enter category' : null,
-              ),
-              TextFormField(
-                controller: _priceController,
-                decoration: const InputDecoration(labelText: 'Price'),
-                keyboardType: TextInputType.number,
-                validator:
-                    (value) =>
-                        value!.isEmpty
-                            ? 'Enter price'
-                            : (double.tryParse(value) == null
-                                ? 'Enter valid number'
-                                : null),
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: _saveProduct,
-                child: Text(isEditing ? 'Update' : 'Add'),
-              ),
-            ],
+            ),
           ),
         ),
       ),

@@ -30,7 +30,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
       context: context,
       builder:
           (context) => AlertDialog(
-            title: const Text("Confirm Deletion"),
+            title: const Text("🗑️ Confirm Deletion"),
             content: const Text(
               "Are you sure you want to delete this product?",
             ),
@@ -52,24 +52,26 @@ class _ProductListScreenState extends State<ProductListScreen> {
 
     if (confirm == true) {
       bool success = await ApiService.deleteProduct(id);
-      if (success) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Product deleted')));
-        _refreshProducts();
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to delete product')),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            success ? '✅ Product deleted' : '❌ Failed to delete product',
+          ),
+          backgroundColor: success ? Colors.green : Colors.red,
+        ),
+      );
+      if (success) _refreshProducts();
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
-        title: const Text('Product List'),
+        title: const Text('🛍️ Product List'),
+        elevation: 2,
+        backgroundColor: Colors.teal,
         actions: [
           IconButton(
             onPressed: _refreshProducts,
@@ -85,39 +87,23 @@ class _ProductListScreenState extends State<ProductListScreen> {
           } else if (snapshot.hasError) {
             return Center(child: Text("Error: ${snapshot.error}"));
           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text("No products available."));
+            return const Center(child: Text("😕 No products available."));
           }
 
           final productList = snapshot.data!;
           return ListView.builder(
+            padding: const EdgeInsets.all(12),
             itemCount: productList.length,
             itemBuilder: (context, index) {
               final product = productList[index];
               return Card(
-                margin: const EdgeInsets.all(10),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
                 elevation: 4,
-                child: ListTile(
-                  leading:
-                      product.image.isNotEmpty
-                          ? Image.network(
-                            "http://10.0.2.2:8000/" + product.image,
-                            width: 60,
-                            height: 60,
-                            fit: BoxFit.cover,
-                            errorBuilder:
-                                (_, __, ___) => const Icon(Icons.broken_image),
-                          )
-                          : const Icon(Icons.image),
-
-                  title: Text(product.name),
-                  subtitle: Text(
-                    "${product.category} • Rs. ${product.price}",
-                    style: const TextStyle(fontSize: 14),
-                  ),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () => _deleteProduct(product.id!),
-                  ),
+                margin: const EdgeInsets.symmetric(vertical: 8),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(16),
                   onTap: () async {
                     final result = await Navigator.push(
                       context,
@@ -127,13 +113,87 @@ class _ProductListScreenState extends State<ProductListScreen> {
                     );
                     if (result == true) _refreshProducts();
                   },
+                  child: Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Row(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child:
+                              product.image.isNotEmpty
+                                  ? Image.network(
+                                    "http://10.0.2.2:8000/${product.image}",
+                                    width: 70,
+                                    height: 70,
+                                    fit: BoxFit.cover,
+                                    errorBuilder:
+                                        (_, __, ___) => const Icon(
+                                          Icons.broken_image,
+                                          size: 50,
+                                        ),
+                                  )
+                                  : Container(
+                                    width: 70,
+                                    height: 70,
+                                    color: Colors.grey[300],
+                                    child: const Icon(
+                                      Icons.image,
+                                      size: 40,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                product.name,
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                product.category,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.black54,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                "Rs. ${product.price.toStringAsFixed(2)}",
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.teal,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(
+                            Icons.delete_outline,
+                            color: Colors.red,
+                          ),
+                          onPressed: () => _deleteProduct(product.id!),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               );
             },
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: Colors.teal,
         onPressed: () async {
           final result = await Navigator.push(
             context,
@@ -141,7 +201,8 @@ class _ProductListScreenState extends State<ProductListScreen> {
           );
           if (result == true) _refreshProducts();
         },
-        child: const Icon(Icons.add),
+        icon: const Icon(Icons.add),
+        label: const Text('Add Product'),
       ),
     );
   }
