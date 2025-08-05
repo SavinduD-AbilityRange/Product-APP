@@ -17,12 +17,17 @@ class Product {
 
   factory Product.fromJson(Map<String, dynamic> json) {
     return Product(
-      id: json['id'],
-      name: json['name'],
-      category: json['category'],
-      price: double.parse(json['price'].toString()),
-      imageUrl: json['image_url'] ?? '',
-      date: json['updated_at'] ?? json['created_at'],
+      id: json['id'] ?? 0,
+      name: json['name'] ?? 'Unknown Product',
+      category: json['category'] ?? 'Uncategorized',
+      price:
+          json['price'] != null ? double.parse(json['price'].toString()) : 0.0,
+      imageUrl: json['image_url'] ?? json['imageUrl'] ?? '',
+      date:
+          json['updated_at'] ??
+          json['created_at'] ??
+          json['date'] ??
+          DateTime.now().toIso8601String(),
     );
   }
 }

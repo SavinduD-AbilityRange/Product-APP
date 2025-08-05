@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import '../models/product.dart';
 import '../services/api_service.dart';
@@ -41,22 +42,48 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
 
   Future<void> _submit() async {
     if (_formKey.currentState!.validate()) {
-      bool success;
-      if (widget.product == null) {
-        success = await ApiService.addProduct(name, category, price, imageFile);
-      } else {
-        success = await ApiService.updateProduct(
-            widget.product!.id, name, category, price, imageFile);
-      }
-      if (success && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(widget.product == null ? 'Product added' : 'Product updated')),
-        );
-        Navigator.pop(context);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Something went wrong')),
-        );
+      try {
+        bool success;
+        if (widget.product == null) {
+          success = await ApiService.addProduct(
+            name,
+            category,
+            price,
+            imageFile,
+          );
+        } else {
+          success = await ApiService.updateProduct(
+            widget.product!.id,
+            name,
+            category,
+            price,
+            imageFile,
+          );
+        }
+        if (success && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                widget.product == null ? 'Product added' : 'Product updated',
+              ),
+            ),
+          );
+          Navigator.pop(context);
+        } else if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Failed to save product. Please check your connection.',
+              ),
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
+        }
       }
     }
   }
@@ -85,8 +112,11 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                   border: OutlineInputBorder(),
                 ),
                 onChanged: (val) => name = val,
-                validator: (val) =>
-                    val == null || val.isEmpty ? 'Enter product name' : null,
+                validator:
+                    (val) =>
+                        val == null || val.isEmpty
+                            ? 'Enter product name'
+                            : null,
               ),
               const SizedBox(height: 12),
 
@@ -99,8 +129,9 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                   border: OutlineInputBorder(),
                 ),
                 onChanged: (val) => category = val,
-                validator: (val) =>
-                    val == null || val.isEmpty ? 'Enter category' : null,
+                validator:
+                    (val) =>
+                        val == null || val.isEmpty ? 'Enter category' : null,
               ),
               const SizedBox(height: 12),
 
@@ -113,23 +144,49 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                   border: OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.number,
-                onChanged: (val) =>
-                    price = double.tryParse(val.trim()) ?? 0.0,
-                validator: (val) =>
-                    val == null || double.tryParse(val) == null
-                        ? 'Enter a valid price'
-                        : null,
+                onChanged: (val) => price = double.tryParse(val.trim()) ?? 0.0,
+                validator:
+                    (val) =>
+                        val == null || double.tryParse(val) == null
+                            ? 'Enter a valid price'
+                            : null,
               ),
               const SizedBox(height: 16),
 
               // Image Preview
-              if (imageFile != null)
+              if (imageFile != null && !kIsWeb)
                 Image.file(imageFile!, height: 180, fit: BoxFit.cover)
+              else if (imageFile != null && kIsWeb)
+                Image.network(
+                  // For web, we'd need to handle this differently
+                  // For now, show placeholder
+                  '',
+                  height: 180,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      height: 180,
+                      color: Colors.grey[300],
+                      child: const Center(
+                        child: Text(
+                          'Image Selected\n(Preview not available on web)',
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    );
+                  },
+                )
               else if (isEdit && widget.product!.imageUrl.isNotEmpty)
-                Image.network(widget.product!.imageUrl,
-                    height: 180, fit: BoxFit.cover)
+                Image.network(
+                  widget.product!.imageUrl,
+                  height: 180,
+                  fit: BoxFit.cover,
+                )
               else
-                const SizedBox(height: 180, child: Center(child: Text('No Image Selected'))),
+                const SizedBox(
+                  height: 180,
+                  child: Center(child: Text('No Image Selected')),
+                ),
 
               const SizedBox(height: 8),
 
@@ -152,7 +209,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                   isEdit ? 'Update Product' : 'Add Product',
                   style: const TextStyle(fontSize: 16),
                 ),
-              )
+              ),
             ],
           ),
         ),
