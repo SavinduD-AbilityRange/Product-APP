@@ -195,47 +195,51 @@ class HttpApiService {
 
       for (String baseUrl in ApiConfig.fallbackUrls) {
         try {
-          final request = http.MultipartRequest(
-            'PUT',
-            Uri.parse('$baseUrl/products/$id'),
-          );
+          // Prepare update data as JSON
+          Map<String, dynamic> updateData = {};
 
-          ApiConfig.logDebug('Sending PUT request to: $baseUrl/products/$id');
-
-          // Add text fields (only if provided)
-          if (name != null) request.fields['name'] = name;
-          if (category != null) request.fields['category'] = category;
-          if (price != null) request.fields['price'] = price.toString();
-          if (description != null) request.fields['description'] = description;
+          if (name != null) updateData['name'] = name;
+          if (category != null) updateData['category'] = category;
+          if (price != null) updateData['price'] = price;
+          if (description != null) updateData['description'] = description;
           if (stockQuantity != null)
-            request.fields['stock_quantity'] = stockQuantity.toString();
+            updateData['stock_quantity'] = stockQuantity;
 
-          ApiConfig.logDebug('Update request fields: ${request.fields}');
-
-          // Handle image upload
+          // Handle image upload - store filename only for now
           if (image != null) {
             if (kIsWeb && image is Uint8List) {
               // Web: Store filename instead of base64
               final timestamp = DateTime.now().millisecondsSinceEpoch;
               final filename = 'web_upload_$timestamp.jpg';
-              request.fields['image'] = filename;
+              updateData['image'] = filename;
               ApiConfig.logDebug('Updated image filename: $filename');
             } else if (!kIsWeb && image.path != null) {
               // Mobile: Extract filename from path
               final filename = image.path.split('/').last;
-              request.fields['image'] = filename;
+              updateData['image'] = filename;
               ApiConfig.logDebug('Updated image filename: $filename');
             }
           }
 
-          final response = await request.send().timeout(ApiConfig.timeout);
-          final responseBody = await response.stream.bytesToString();
+          ApiConfig.logDebug('Sending PUT request to: $baseUrl/products/$id');
+          ApiConfig.logDebug('Update data: ${json.encode(updateData)}');
+
+          final response = await http
+              .put(
+                Uri.parse('$baseUrl/products/$id'),
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Accept': 'application/json',
+                },
+                body: json.encode(updateData),
+              )
+              .timeout(ApiConfig.timeout);
 
           ApiConfig.logDebug('Update response status: ${response.statusCode}');
-          ApiConfig.logDebug('Update response body: $responseBody');
+          ApiConfig.logDebug('Update response body: ${response.body}');
 
           if (response.statusCode == 200) {
-            final responseData = json.decode(responseBody);
+            final responseData = json.decode(response.body);
 
             Map<String, dynamic> productData;
             if (responseData is Map && responseData.containsKey('product')) {
@@ -251,7 +255,7 @@ class HttpApiService {
             return Product.fromJson(productData);
           } else {
             ApiConfig.logDebug(
-              '❌ Update failed with status ${response.statusCode}: $responseBody',
+              '❌ Update failed with status ${response.statusCode}: ${response.body}',
             );
           }
         } catch (e) {

@@ -31,7 +31,18 @@ $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $pathParts = explode('/', trim($path, '/'));
 
 // Route handling
-if (in_array('products', $pathParts)) {
+if (in_array('images', $pathParts)) {
+    // Handle image serving: /images/filename.jpg
+    $imageIndex = array_search('images', $pathParts);
+    $filename = isset($pathParts[$imageIndex + 1]) ? $pathParts[$imageIndex + 1] : null;
+    
+    if ($filename && $method === 'GET') {
+        serveImage($filename);
+    } else {
+        http_response_code(404);
+        echo json_encode(['error' => 'Image not found']);
+    }
+} elseif (in_array('products', $pathParts)) {
     $productIndex = array_search('products', $pathParts);
     $productId = isset($pathParts[$productIndex + 1]) ? $pathParts[$productIndex + 1] : null;
     
@@ -78,6 +89,59 @@ if (in_array('products', $pathParts)) {
     echo json_encode(['error' => 'Endpoint not found']);
 }
 
+// Serve image files
+function serveImage($filename) {
+    // Define allowed image extensions for security
+    $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+    $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+    
+    if (!in_array($extension, $allowedExtensions)) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Invalid image format']);
+        return;
+    }
+    
+    // Define possible image storage locations
+    $possiblePaths = [
+        __DIR__ . '/storage/images/' . $filename,
+        __DIR__ . '/images/' . $filename,
+        __DIR__ . '/../storage/images/' . $filename,
+        __DIR__ . '/../images/' . $filename,
+    ];
+    
+    $imagePath = null;
+    foreach ($possiblePaths as $path) {
+        if (file_exists($path)) {
+            $imagePath = $path;
+            break;
+        }
+    }
+    
+    if (!$imagePath) {
+        // If image file doesn't exist, return a placeholder or 404
+        http_response_code(404);
+        echo json_encode(['error' => 'Image not found']);
+        return;
+    }
+    
+    // Get MIME type
+    $mimeType = mime_content_type($imagePath);
+    if (!$mimeType || !str_starts_with($mimeType, 'image/')) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Invalid image file']);
+        return;
+    }
+    
+    // Set headers for image serving
+    header('Content-Type: ' . $mimeType);
+    header('Content-Length: ' . filesize($imagePath));
+    header('Cache-Control: public, max-age=3600'); // Cache for 1 hour
+    
+    // Output the image
+    readfile($imagePath);
+    exit();
+}
+
 // Get all products
 function getProducts($pdo) {
     try {
@@ -93,7 +157,7 @@ function getProducts($pdo) {
                 'price' => (float)$product['price'],
                 'description' => $product['description'] ?? '',
                 'stock_quantity' => (int)$product['stock_quantity'],
-                'image' => $product['image'] ?? '',
+                'image' => formatImageUrl($product['image']),
                 'created_at' => $product['created_at'],
                 'updated_at' => $product['updated_at']
             ];
@@ -121,7 +185,7 @@ function getProduct($pdo, $id) {
                 'price' => (float)$product['price'],
                 'description' => $product['description'] ?? '',
                 'stock_quantity' => (int)$product['stock_quantity'],
-                'image' => $product['image'] ?? '',
+                'image' => formatImageUrl($product['image']),
                 'created_at' => $product['created_at'],
                 'updated_at' => $product['updated_at']
             ];
@@ -185,7 +249,16 @@ function updateProduct($pdo, $id) {
         
         // For PUT requests with multipart data, parse manually
         if (empty($input) && $_SERVER['REQUEST_METHOD'] === 'PUT') {
-            $input = parseMultipartData();
+            // Capture raw input for debugging (only read once!)
+            $raw_input = file_get_contents('php://input');
+            error_log("=== RAW PUT REQUEST ===");
+            error_log("Content-Type: " . ($_SERVER['CONTENT_TYPE'] ?? 'none'));
+            error_log("Content-Length: " . ($_SERVER['CONTENT_LENGTH'] ?? 'none'));
+            error_log("Raw input length: " . strlen($raw_input));
+            error_log("Raw input (first 500 chars): " . substr($raw_input, 0, 500));
+            error_log("========================");
+            
+            $input = parseMultipartData($raw_input);
         }
         
         // Debug logging
@@ -279,7 +352,7 @@ function getCategories($pdo) {
 }
 
 // Parse multipart form data for PUT requests
-function parseMultipartData() {
+function parseMultipartData($raw_input = null) {
     $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
     
     // Extract boundary from Content-Type header
@@ -291,8 +364,15 @@ function parseMultipartData() {
     $boundary = '--' . trim($matches[1]);
     error_log("MULTIPART DEBUG - Using boundary: $boundary");
     
-    $input = file_get_contents('php://input');
+    // Use provided input or read from php://input
+    if ($raw_input === null) {
+        $input = file_get_contents('php://input');
+    } else {
+        $input = $raw_input;
+    }
+    
     error_log("MULTIPART DEBUG - Raw input length: " . strlen($input));
+    error_log("MULTIPART DEBUG - Raw input sample: " . substr($input, 0, 500));
     
     // Split by boundary
     $parts = explode($boundary, $input);
@@ -300,9 +380,12 @@ function parseMultipartData() {
     
     foreach ($parts as $index => $part) {
         // Skip empty parts and the final boundary
-        if (empty(trim($part)) || $part === '--') {
+        $trimmedPart = trim($part);
+        if (empty($trimmedPart) || $trimmedPart === '--' || $trimmedPart === '--\r\n' || $trimmedPart === '--\n') {
             continue;
         }
+        
+        error_log("MULTIPART DEBUG - Processing part $index: " . substr($part, 0, 200));
         
         // Look for Content-Disposition header
         if (strpos($part, 'Content-Disposition:') !== false) {
@@ -325,12 +408,45 @@ function parseMultipartData() {
                     $value = trim($value, "\r\n -");
                     $data[$name] = $value;
                     error_log("MULTIPART DEBUG - Parsed field '$name' = '$value'");
+                } else {
+                    error_log("MULTIPART DEBUG - Could not find header end in part: " . substr($part, 0, 100));
                 }
+            } else {
+                error_log("MULTIPART DEBUG - Could not extract field name from: " . substr($part, 0, 100));
             }
+        } else {
+            error_log("MULTIPART DEBUG - No Content-Disposition found in part: " . substr($part, 0, 100));
         }
     }
     
     error_log("MULTIPART DEBUG - Final parsed data: " . json_encode($data));
     return $data;
+}
+
+// Helper function to format image URLs
+function formatImageUrl($imagePath) {
+    if (empty($imagePath)) {
+        return '';
+    }
+    
+    // Extract filename from various possible formats
+    $filename = basename($imagePath);
+    
+    // If it's already a URL, return as-is
+    if (strpos($imagePath, 'http://') === 0 || strpos($imagePath, 'https://') === 0) {
+        return $imagePath;
+    }
+    
+    // If it's just a filename (like from mobile uploads), use it directly
+    if (strpos($imagePath, '/') === false && strpos($imagePath, '\\') === false) {
+        $filename = $imagePath;
+    }
+    
+    // Get current domain and port
+    $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https' : 'http';
+    $host = isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : 'localhost:8001';
+    
+    // Return proper image serving URL
+    return $protocol . '://' . $host . '/images/' . $filename;
 }
 ?>
