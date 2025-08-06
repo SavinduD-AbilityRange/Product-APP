@@ -128,7 +128,15 @@ class ApiService {
           }
 
           print('SUCCESS: Fetched ${data.length} products from $productsUrl');
-          return data.map((item) => Product.fromJson(item)).toList();
+          final products =
+              data.map((item) {
+                final product = Product.fromJson(item);
+                print(
+                  'Product: ${product.name}, Image URL: "${product.imageUrl}"',
+                );
+                return product;
+              }).toList();
+          return products;
         } else if (response.statusCode == 500) {
           print('Server error (500) for $productsUrl - trying next URL');
           continue; // Try next URL

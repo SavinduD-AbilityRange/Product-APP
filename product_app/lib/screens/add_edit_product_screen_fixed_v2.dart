@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import '../models/product.dart';
 import '../services/api_service.dart';
+import '../config/api_config.dart';
 
 class AddEditProductScreen extends StatefulWidget {
   final Product? product;
@@ -20,6 +21,37 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
   String category = '';
   double price = 0.0;
   File? imageFile;
+
+  String _getFullImageUrl(String imageUrl) {
+    if (imageUrl.isEmpty) return '';
+
+    // If it's already a complete URL, return as is
+    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+      return imageUrl;
+    }
+
+    
+    final fallbackUrls = ApiConfig.fallbackUrls;
+    final baseUrl =
+        fallbackUrls.isNotEmpty ? fallbackUrls[0] : 'http://10.0.2.2:8000';
+
+    String fullUrl;
+    // Check if the imageUrl already contains the storage path
+    if (imageUrl.startsWith('storage/products/')) {
+      fullUrl = '$baseUrl/$imageUrl';
+    } else if (imageUrl.startsWith('/storage/products/')) {
+      fullUrl = '$baseUrl$imageUrl';
+    } else {
+      // If it's just a filename, add the full storage path
+      if (imageUrl.startsWith('/')) {
+        fullUrl = '$baseUrl/storage/products$imageUrl';
+      } else {
+        fullUrl = '$baseUrl/storage/products/$imageUrl';
+      }
+    }
+
+    return fullUrl;
+  }
 
   @override
   void initState() {
@@ -350,7 +382,9 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                                                   .imageUrl
                                                   .isNotEmpty
                                           ? Image.network(
-                                            widget.product!.imageUrl,
+                                            _getFullImageUrl(
+                                              widget.product!.imageUrl,
+                                            ),
                                             fit: BoxFit.cover,
                                           )
                                           : Container(

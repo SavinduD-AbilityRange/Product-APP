@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/product.dart';
+import '../config/api_config.dart';
 
 class ProductCard extends StatelessWidget {
   final Product product;
@@ -12,6 +13,38 @@ class ProductCard extends StatelessWidget {
     required this.onEdit,
     required this.onDelete,
   });
+
+  String _getFullImageUrl(String imageUrl) {
+    if (imageUrl.isEmpty) return '';
+
+    // If it's already a complete URL, return as is
+    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+      return imageUrl;
+    }
+
+    // If it's a relative path, construct the full URL
+    // Use the first fallback URL from ApiConfig
+    final fallbackUrls = ApiConfig.fallbackUrls;
+    final baseUrl =
+        fallbackUrls.isNotEmpty ? fallbackUrls[0] : 'http://10.0.2.2:8000';
+
+    String fullUrl;
+    // Check if the imageUrl already contains the storage path
+    if (imageUrl.startsWith('storage/products/')) {
+      fullUrl = '$baseUrl/$imageUrl';
+    } else if (imageUrl.startsWith('/storage/products/')) {
+      fullUrl = '$baseUrl$imageUrl';
+    } else {
+      // If it's just a filename, add the full storage path
+      if (imageUrl.startsWith('/')) {
+        fullUrl = '$baseUrl/storage/products$imageUrl';
+      } else {
+        fullUrl = '$baseUrl/storage/products/$imageUrl';
+      }
+    }
+
+    return fullUrl;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -57,7 +90,7 @@ class ProductCard extends StatelessWidget {
                       child: Stack(
                         children: [
                           Image.network(
-                            product.imageUrl,
+                            _getFullImageUrl(product.imageUrl),
                             width: double.infinity,
                             height: double.infinity,
                             fit: BoxFit.cover,

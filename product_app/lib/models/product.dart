@@ -22,7 +22,7 @@ class Product {
       category: json['category'] ?? 'Uncategorized',
       price:
           json['price'] != null ? double.parse(json['price'].toString()) : 0.0,
-      imageUrl: json['image_url'] ?? json['imageUrl'] ?? '',
+      imageUrl: json['image_url'] ?? json['imageUrl'] ?? json['image'] ?? '',
       date:
           json['updated_at'] ??
           json['created_at'] ??

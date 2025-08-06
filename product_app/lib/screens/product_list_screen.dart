@@ -39,16 +39,31 @@ class _ProductListScreenState extends State<ProductListScreen> {
     // Use the first fallback URL from ApiConfig
     final fallbackUrls = ApiConfig.fallbackUrls;
     final baseUrl =
-        fallbackUrls.isNotEmpty ? fallbackUrls[0] : 'http://10.0.2.2:5000';
+        fallbackUrls.isNotEmpty ? fallbackUrls[0] : 'http://10.0.2.2:8000';
+
+    print('Using base URL: $baseUrl');
+    print('Original image URL: "$imageUrl"');
 
     String fullUrl;
-    if (imageUrl.startsWith('/')) {
-      fullUrl = '$baseUrl$imageUrl';
-    } else {
+    // Check if the imageUrl already contains the storage path
+    if (imageUrl.startsWith('storage/products/')) {
       fullUrl = '$baseUrl/$imageUrl';
+      print('Case 1: storage/products/ prefix found');
+    } else if (imageUrl.startsWith('/storage/products/')) {
+      fullUrl = '$baseUrl$imageUrl';
+      print('Case 2: /storage/products/ prefix found');
+    } else {
+      // If it's just a filename, add the full storage path
+      if (imageUrl.startsWith('/')) {
+        fullUrl = '$baseUrl/storage/products$imageUrl';
+        print('Case 3: starts with / - adding storage path');
+      } else {
+        fullUrl = '$baseUrl/storage/products/$imageUrl';
+        print('Case 4: filename only - adding full storage path');
+      }
     }
 
-    print('Converting relative URL "$imageUrl" to full URL: $fullUrl');
+    print('Final constructed URL: $fullUrl');
     return fullUrl;
   }
 
