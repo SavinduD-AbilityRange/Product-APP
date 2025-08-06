@@ -218,7 +218,7 @@ class ApiService {
     for (int i = 0; i < fallbackUrls.length; i++) {
       String baseUrl = fallbackUrls[i];
       try {
-        final addUrl = '$baseUrl/products';
+        final addUrl = '$baseUrl/products/';
         print('Attempt ${i + 1}/${fallbackUrls.length}: POST to $addUrl');
 
         var request = http.MultipartRequest('POST', Uri.parse(addUrl));

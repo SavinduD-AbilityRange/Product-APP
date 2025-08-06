@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/product.dart';
 import '../services/api_service.dart';
+import '../config/api_config.dart';
 import 'add_edit_product_screen.dart';
 
 class ProductListScreen extends StatefulWidget {
@@ -23,6 +24,32 @@ class _ProductListScreenState extends State<ProductListScreen> {
     setState(() {
       products = ApiService.fetchProducts();
     });
+  }
+
+  String _getFullImageUrl(String imageUrl) {
+    if (imageUrl.isEmpty) return '';
+
+    // If it's already a complete URL, return as is
+    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+      print('Image URL is already complete: $imageUrl');
+      return imageUrl;
+    }
+
+    // If it's a relative path, construct the full URL
+    // Use the first fallback URL from ApiConfig
+    final fallbackUrls = ApiConfig.fallbackUrls;
+    final baseUrl =
+        fallbackUrls.isNotEmpty ? fallbackUrls[0] : 'http://10.0.2.2:5000';
+
+    String fullUrl;
+    if (imageUrl.startsWith('/')) {
+      fullUrl = '$baseUrl$imageUrl';
+    } else {
+      fullUrl = '$baseUrl/$imageUrl';
+    }
+
+    print('Converting relative URL "$imageUrl" to full URL: $fullUrl');
+    return fullUrl;
   }
 
   void _confirmDelete(Product product) {
@@ -154,10 +181,21 @@ class _ProductListScreenState extends State<ProductListScreen> {
                   leading: ClipRRect(
                     borderRadius: BorderRadius.circular(8),
                     child: Image.network(
-                      product.imageUrl,
+                      _getFullImageUrl(product.imageUrl),
                       width: 56,
                       height: 56,
                       fit: BoxFit.cover,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return Container(
+                          width: 56,
+                          height: 56,
+                          color: Colors.grey[200],
+                          child: const CircularProgressIndicator(
+                            strokeWidth: 2,
+                          ),
+                        );
+                      },
                       errorBuilder:
                           (_, __, ___) => Container(
                             width: 56,
