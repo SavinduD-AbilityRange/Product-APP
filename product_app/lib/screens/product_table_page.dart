@@ -161,16 +161,43 @@ class _ProductTablePageState extends State<ProductTablePage> {
                                       fit: BoxFit.cover,
                                     ))
                                 : (_editIndex != null &&
-                                        _products[_editIndex!].imageUrl != null
-                                    ? Image.network(
-                                      _products[_editIndex!].imageUrl!,
-                                      fit: BoxFit.cover,
-                                    )
-                                    : const Icon(
-                                      Icons.add_a_photo,
-                                      size: 40,
-                                      color: Colors.grey,
-                                    )),
+                                    _products[_editIndex!].imageUrl != null)
+                                ? Image.network(
+                                  "http://10.0.2.2:8000/products/...${_products[_editIndex!].imageUrl}",
+                                  fit: BoxFit.cover,
+                                  loadingBuilder: (
+                                    context,
+                                    child,
+                                    loadingProgress,
+                                  ) {
+                                    if (loadingProgress == null) return child;
+                                    return Center(
+                                      child: CircularProgressIndicator(
+                                        value:
+                                            loadingProgress
+                                                        .expectedTotalBytes !=
+                                                    null
+                                                ? loadingProgress
+                                                        .cumulativeBytesLoaded /
+                                                    (loadingProgress
+                                                            .expectedTotalBytes ??
+                                                        1)
+                                                : null,
+                                      ),
+                                    );
+                                  },
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return const Icon(
+                                      Icons.error,
+                                      color: Colors.red,
+                                    );
+                                  },
+                                )
+                                : const Icon(
+                                  Icons.add_a_photo,
+                                  size: 40,
+                                  color: Colors.grey,
+                                ),
                       ),
                     ),
                     const SizedBox(height: 16),
