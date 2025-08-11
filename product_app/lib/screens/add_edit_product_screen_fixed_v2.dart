@@ -30,26 +30,37 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
       return imageUrl;
     }
 
-    
-    final fallbackUrls = ApiConfig.fallbackUrls;
-    final baseUrl =
-        fallbackUrls.isNotEmpty ? fallbackUrls[0] : 'http://10.0.2.2:8000';
+    // Hardcode the working IP address from your logs
+    String baseUrl = 'http://192.168.8.132:8000';
+
+    print('Using base URL: $baseUrl');
+    print('Original image URL: "$imageUrl"');
 
     String fullUrl;
-    // Check if the imageUrl already contains the storage path
+    // Handle different image URL formats
     if (imageUrl.startsWith('storage/products/')) {
       fullUrl = '$baseUrl/$imageUrl';
+      print('Case 1: storage/products/ prefix found (no leading slash)');
     } else if (imageUrl.startsWith('/storage/products/')) {
       fullUrl = '$baseUrl$imageUrl';
+      print('Case 2: /storage/products/ prefix found');
+    } else if (imageUrl.startsWith('/private/') ||
+        imageUrl.startsWith('private/')) {
+      // These are temporary file paths that won't work - skip them
+      print('Case 3: private path detected - returning empty');
+      return '';
     } else {
-      // If it's just a filename, add the full storage path
+      // If it's just a filename or other path, add the full storage path
       if (imageUrl.startsWith('/')) {
         fullUrl = '$baseUrl/storage/products$imageUrl';
+        print('Case 4: starts with / - adding storage path');
       } else {
         fullUrl = '$baseUrl/storage/products/$imageUrl';
+        print('Case 5: no leading slash - adding full path');
       }
     }
 
+    print('Final constructed URL: $fullUrl');
     return fullUrl;
   }
 
@@ -382,11 +393,53 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                                                   .imageUrl
                                                   .isNotEmpty
                                           ? Image.network(
-                                            _getFullImageUrl(
-                                              widget.product!.imageUrl,
-                                            ),
-                                            fit: BoxFit.cover,
-                                          )
+        _getFullImageUrl(widget.product!.imageUrl),
+        fit: BoxFit.cover,
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return Center(
+            child: CircularProgressIndicator(
+              value: loadingProgress.expectedTotalBytes != null
+                  ? loadingProgress.cumulativeBytesLoaded /
+                      loadingProgress.expectedTotalBytes!
+                  : null,
+            ),
+          );
+        },
+        errorBuilder: (context, error, stackTrace) {
+          print('Image loading error: $error');
+          return Container(
+            color: Colors.grey[100],
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.broken_image,
+                  size: 48,
+                  color: Colors.red[300],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Failed to load image',
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'URL: ${_getFullImageUrl(widget.product!.imageUrl)}',
+                  style: TextStyle(
+                    color: Colors.grey[500],
+                    fontSize: 10,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          );
+        },
+      )
                                           : Container(
                                             color: Colors.grey[50],
                                             child: Column(
