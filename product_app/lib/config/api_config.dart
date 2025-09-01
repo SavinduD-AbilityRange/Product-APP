@@ -1,16 +1,15 @@
 import 'dart:io';
 
 class ApiConfig {
-  // For Android Emulator - use 10.0.2.2 (standard Android emulator host)
+  
   static const String androidEmulatorUrl =
-      'http://10.0.2.2:8000'; // <-- updated
-  // For iOS Simulator and other platforms
-  static const String defaultUrl = 'http://10.0.2.2:8000'; // <-- updated
+      'http://10.0.2.2:8000'; 
+  
+  static const String defaultUrl = 'http://10.0.2.2:8000'; 
 
   static bool get _isWeb {
     try {
-      // This will throw on non-web platforms
-      return identical(0, 0.0) == false; // This is false only on web
+      return identical(0, 0.0) == false; 
     } catch (e) {
       return false;
     }
@@ -38,17 +37,17 @@ class ApiConfig {
         return defaultUrl;
       }
     } catch (e) {
-      // Fallback for test environment
+      
       print('Platform detection failed, using localhost: $e');
       return 'http://localhost:8000';
     }
   }
 
-  // Fallback URLs to try if primary fails
+  
   static List<String> get fallbackUrls {
     if (_isWeb) {
       return [
-        'http://10.0.2.2:8000', // <-- updated
+        'http://10.0.2.2:8000',
         'http://localhost:8000',
         'http://127.0.0.1:8000',
       ];
@@ -57,26 +56,26 @@ class ApiConfig {
     try {
       if (Platform.isAndroid) {
         return [
-          'http://10.0.2.2:8000', // <-- updated
+          'http://10.0.2.2:8000', 
           'http://10.0.2.2:8000',
           'http://localhost:8000',
         ];
       } else {
         return [
-          'http://10.0.2.2:8000', // <-- updated
+          'http://10.0.2.2:8000', 
           'http://localhost:8000',
           'http://127.0.0.1:8000',
         ];
       }
     } catch (e) {
-      // Fallback for test environment
+      
       return [
-        'http://192.168.8.105:8000', // <-- updated
+        'http://192.168.8.105:8000', 
         'http://localhost:8000',
         'http://127.0.0.1:8000',
       ];
     }
-  } // Product endpoints
+  } 
 
   static String get productsUrl => '$baseUrl/products';
   static String get pingUrl => '$baseUrl/ping';

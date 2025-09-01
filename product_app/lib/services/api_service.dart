@@ -5,10 +5,8 @@ import '../models/product.dart';
 import '../config/api_config.dart';
 
 class ApiService {
-  // Use the configuration file for flexible URL management
   static String get baseUrl => ApiConfig.productsUrl;
 
-  // Test endpoints with fallback URLs
   static Future<bool> pingServer() async {
     final fallbackUrls = ApiConfig.fallbackUrls;
 
@@ -39,7 +37,7 @@ class ApiService {
         }
       } catch (e) {
         print('❌ Ping failed for $baseUrl: $e');
-        continue; // Try next URL
+        continue; 
       }
     }
 
@@ -74,7 +72,7 @@ class ApiService {
         }
       } catch (e) {
         print('❌ Environment check failed for $baseUrl: $e');
-        continue; // Try next URL
+        continue;
       }
     }
 
@@ -102,7 +100,7 @@ class ApiService {
               Uri.parse(productsUrl),
               headers: {'Content-Type': 'application/json'},
             )
-            .timeout(const Duration(seconds: 8)); // Increased timeout
+            .timeout(const Duration(seconds: 8));
 
         print('Response received - Status: ${response.statusCode}');
 
@@ -110,17 +108,13 @@ class ApiService {
           final responseData = json.decode(response.body);
           print('Raw response: $responseData');
 
-          // Handle different response formats
           List data;
           if (responseData is List) {
-            // Direct array response
             data = responseData;
           } else if (responseData is Map &&
               responseData.containsKey('products')) {
-            // Wrapped response with 'products' key
             data = responseData['products'];
           } else if (responseData is Map && responseData.containsKey('data')) {
-            // Wrapped response with 'data' key
             data = responseData['data'];
           } else {
             print('Unexpected response format: $responseData');
@@ -139,12 +133,12 @@ class ApiService {
           return products;
         } else if (response.statusCode == 500) {
           print('Server error (500) for $productsUrl - trying next URL');
-          continue; // Try next URL
+          continue; 
         } else {
           print(
             'HTTP error ${response.statusCode} for $productsUrl - trying next URL',
           );
-          continue; // Try next URL instead of throwing exception
+          continue; 
         }
       } catch (e) {
         print('ERROR for $baseUrl: $e');
@@ -155,7 +149,6 @@ class ApiService {
           print('⚠️  Cannot reach server - check if backend is running');
         }
 
-        // If this is the last URL, throw the exception
         if (i == fallbackUrls.length - 1) {
           print('❌ All URLs failed. Last error: $e');
           throw Exception(
@@ -163,7 +156,7 @@ class ApiService {
             'Last error: $e',
           );
         }
-        continue; // Try next URL
+        continue; 
       }
     }
 
@@ -197,14 +190,14 @@ class ApiService {
           if (i == fallbackUrls.length - 1) {
             throw Exception('Server returned status ${response.statusCode}');
           }
-          continue; // Try next URL
+          continue;
         }
       } catch (e) {
         print('❌ Error deleting product from $baseUrl: $e');
         if (i == fallbackUrls.length - 1) {
           throw Exception('Failed to delete product: $e');
         }
-        continue; // Try next URL
+        continue; 
       }
     }
 
@@ -255,14 +248,14 @@ class ApiService {
               'Server returned status ${response.statusCode}: $responseBody',
             );
           }
-          continue; // Try next URL
+          continue; 
         }
       } catch (e) {
         print('❌ Error adding product to $baseUrl: $e');
         if (i == fallbackUrls.length - 1) {
           throw Exception('Failed to add product: $e');
         }
-        continue; // Try next URL
+        continue; 
       }
     }
 
@@ -314,14 +307,14 @@ class ApiService {
               'Server returned status ${response.statusCode}: $responseBody',
             );
           }
-          continue; // Try next URL
+          continue; 
         }
       } catch (e) {
         print('❌ Error updating product at $baseUrl: $e');
         if (i == fallbackUrls.length - 1) {
           throw Exception('Failed to update product: $e');
         }
-        continue; // Try next URL
+        continue; 
       }
     }
 

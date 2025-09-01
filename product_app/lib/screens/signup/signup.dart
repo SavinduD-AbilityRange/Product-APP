@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:product_app/screens/login/login.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({Key? key}) : super(key: key);
@@ -34,11 +36,41 @@ class _SignupScreenState extends State<SignupScreen> {
     }
   }
 
+  Future<void> signupRequest() async {
+    final url = 'http://192.168.8.105:8000/signup';
+    final body = {
+      'username': _username,
+      'email': _email,
+      'password': _password,
+      'dob':
+          _dob != null
+              ? '${_dob!.year}-${_dob!.month.toString().padLeft(2, '0')}-${_dob!.day.toString().padLeft(2, '0')}'
+              : '',
+    };
+    if (_isUnder16) {
+      body['parent_username'] = _parentUsername;
+      body['parent_email'] = _parentEmail;
+    }
+    final response = await http.post(
+      Uri.parse(url),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(body),
+    );
+    print('Status: ${response.statusCode}');
+    print('Body: ${response.body}');
+    if (response.statusCode != 201) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Signup failed: ${response.body}')),
+      );
+    }
+  }
+
   void _signup() async {
     if (_formKey.currentState?.validate() ?? false) {
       setState(() => _isLoading = true);
 
-      await Future.delayed(const Duration(seconds: 1));
+      await signupRequest();
+
       setState(() => _isLoading = false);
 
       Navigator.pushReplacement(

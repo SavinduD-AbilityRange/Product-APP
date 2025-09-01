@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../product_list_screen.dart'; // Make sure this file exists
+import '../product_list_screen.dart'; 
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -17,11 +17,10 @@ class _LoginScreenState extends State<LoginScreen> {
   void _login() async {
     if (_formKey.currentState?.validate() ?? false) {
       setState(() => _isLoading = true);
-      // Simulate login delay
+      
       await Future.delayed(const Duration(seconds: 1));
       setState(() => _isLoading = false);
 
-      // Navigate to ProductListScreen
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const ProductListScreen()),
