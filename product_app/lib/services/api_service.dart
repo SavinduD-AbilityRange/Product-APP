@@ -1,117 +1,83 @@
-import '../models/product.dart';
+import 'dart:convert';
+import 'dart:io';
+import 'package:http/http.dart' as http;
 
 class ApiService {
-  static final List<Product> _products = [];
-  static final Set<String> _customCategories = {
-    'Electronics',
-    'Clothing',
-    'Food',
-    'Books',
-    'Home & Garden',
+  final String baseUrl;
+  String? _jwtToken;
+
+  ApiService({required this.baseUrl});
+
+  void setToken(String token) {
+    _jwtToken = token;
+  }
+
+  Map<String, String> get _headers => {
+    'Content-Type': 'application/json',
+    if (_jwtToken != null) 'Authorization': 'Bearer $_jwtToken',
   };
 
-  // Get all products
-  Future<List<Product>> getProducts() async {
-    // Simulate network delay
-    await Future.delayed(const Duration(milliseconds: 500));
-    return List.from(_products);
-  }
-
-  // Get single product
-  Future<Product> getProduct(String id) async {
-    await Future.delayed(const Duration(milliseconds: 300));
-
-    final product = _products.firstWhere(
-      (p) => p.id == id,
-      orElse: () => throw Exception('Product not found'),
-    );
-    return product;
-  }
-
-  // Create new product
-  Future<Product> createProduct({
-    required String name,
-    required String category,
-    required double price,
-    String? description,
-    int stockQuantity = 0,
-    dynamic image, // File or Uint8List
+  Future<http.Response> register({
+    required String firstName,
+    required String lastName,
+    required String email,
+    required String password,
+    required String address,
+    required String dob,
+    File? profileImage,
   }) async {
-    await Future.delayed(const Duration(milliseconds: 500));
-
-    final newProduct = Product(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      name: name,
-      category: category,
-      price: price,
-      description: description,
-      stockQuantity: stockQuantity,
-      image: image,
-      date: DateTime.now().toString().split(' ')[0],
-    );
-
-    _products.add(newProduct);
-    return newProduct;
+    var uri = Uri.parse('$baseUrl/register');
+    var request = http.MultipartRequest('POST', uri);
+    request.fields['first_name'] = firstName;
+    request.fields['last_name'] = lastName;
+    request.fields['email'] = email;
+    request.fields['password'] = password;
+    request.fields['address'] = address;
+    request.fields['dob'] = dob;
+    if (profileImage != null) {
+      request.files.add(
+        await http.MultipartFile.fromPath('profile_picture', profileImage.path),
+      );
+    }
+    request.headers.addAll(_headers);
+    var streamed = await request.send();
+    return await http.Response.fromStream(streamed);
   }
 
-  // Update product
-  Future<Product> updateProduct({
-    required String id,
-    String? name,
-    String? category,
-    double? price,
-    String? description,
-    int? stockQuantity,
-    dynamic image,
+  Future<http.Response> login({
+    required String email,
+    required String password,
   }) async {
-    await Future.delayed(const Duration(milliseconds: 500));
-
-    final index = _products.indexWhere((p) => p.id == id);
-    if (index == -1) {
-      throw Exception('Product not found');
-    }
-
-    final oldProduct = _products[index];
-    final updatedProduct = oldProduct.copyWith(
-      name: name,
-      category: category,
-      price: price,
-      description: description,
-      stockQuantity: stockQuantity,
-      image: image,
-      updatedAt: DateTime.now(),
+    var uri = Uri.parse('$baseUrl/login');
+    return await http.post(
+      uri,
+      headers: _headers,
+      body: jsonEncode({'email': email, 'password': password}),
     );
-
-    _products[index] = updatedProduct;
-    return updatedProduct;
   }
 
-  // Delete product
-  Future<bool> deleteProduct(String id) async {
-    await Future.delayed(const Duration(milliseconds: 300));
-
-    final index = _products.indexWhere((p) => p.id == id);
-    if (index != -1) {
-      _products.removeAt(index);
-      return true;
-    }
-    return false;
+  Future<http.Response> sendOtp({
+    required String email,
+    bool isParent = false,
+  }) async {
+    var uri = Uri.parse('$baseUrl/send-otp');
+    return await http.post(
+      uri,
+      headers: _headers,
+      body: jsonEncode({'email': email, 'is_parent': isParent}),
+    );
   }
 
-  // Get categories
-  Future<List<String>> getCategories() async {
-    await Future.delayed(const Duration(milliseconds: 200));
-
-    // Combine default categories with custom ones from products
-    final productCategories = _products.map((p) => p.category).toSet();
-    final allCategories = {..._customCategories, ...productCategories};
-
-    return allCategories.toList()..sort();
-  }
-
-  // Add a new category
-  Future<void> addCategory(String category) async {
-    await Future.delayed(const Duration(milliseconds: 100));
-    _customCategories.add(category);
+  Future<http.Response> verifyOtp({
+    required String email,
+    required String otp,
+    bool isParent = false,
+  }) async {
+    var uri = Uri.parse('$baseUrl/verify-otp');
+    return await http.post(
+      uri,
+      headers: _headers,
+      body: jsonEncode({'email': email, 'otp': otp, 'is_parent': isParent}),
+    );
   }
 }

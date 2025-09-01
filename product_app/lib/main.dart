@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'screens/product_table_page.dart';
 import 'screens/backend_setup_page.dart';
+import 'screens/signup/signup_page.dart';
+import 'screens/parent_profile_page.dart';
+import 'screens/otp/otp_page.dart';
+import 'screens/auth_choice_page.dart';
+import 'screens/signin/signin_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -15,7 +20,13 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Product Management App',
       theme: ThemeData(primarySwatch: Colors.blue),
-      home: const MainMenu(),
+      home: AuthChoicePage(),
+      routes: {
+        '/signup': (context) => SignupPage(),
+        '/signin': (context) => SignInPage(),
+        '/parent-profile': (context) => ParentProfilePage(),
+        '/otp': (context) => OTPPage(),
+      },
     );
   }
 }
@@ -69,6 +80,23 @@ class MainMenu extends StatelessWidget {
                   label: const Text('Manage Products'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                    textStyle: const TextStyle(fontSize: 16),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: 250,
+                height: 50,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.pushNamed(context, '/signup');
+                  },
+                  icon: const Icon(Icons.person_add),
+                  label: const Text('Sign Up'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange,
                     foregroundColor: Colors.white,
                     textStyle: const TextStyle(fontSize: 16),
                   ),

@@ -22,10 +22,8 @@ class _ProductTablePageState extends State<ProductTablePage> {
   final List<Product> _products = [];
   final _formKey = GlobalKey<FormState>();
 
-  // 🔧 CONFIGURATION: Choose your data source
-  // 'local' = In-memory storage (for testing)
-  // 'backend' = Your external backend API
-  final String _dataSource = 'backend'; // Now using real-time backend API
+
+  final String _dataSource = 'backend'; 
   late final dynamic _apiService;
 
   final _nameController = TextEditingController();
@@ -50,9 +48,9 @@ class _ProductTablePageState extends State<ProductTablePage> {
 
   void _initializeService() {
     if (_dataSource == 'backend') {
-      _apiService = HttpApiService(); // Use your external backend
+      _apiService = HttpApiService(); 
     } else {
-      _apiService = ApiService(); // Use local storage for testing
+      _apiService = ApiService(baseUrl: ''); 
     }
   }
 
@@ -114,11 +112,11 @@ class _ProductTablePageState extends State<ProductTablePage> {
       _stockController.text = product.stockQuantity.toString();
       _selectedImage = product.image;
 
-      // Set category selection
+      
       _selectedCategory = product.category;
       _categoryController.text = product.category;
     } else {
-      // Reset form for new product
+    
       _editIndex = null;
       _nameController.clear();
       _categoryController.clear();
@@ -163,7 +161,7 @@ class _ProductTablePageState extends State<ProductTablePage> {
                                 : (_editIndex != null &&
                                     _products[_editIndex!].imageUrl != null)
                                 ? Image.network(
-                                  "http://10.0.2.2:8000/products/...${_products[_editIndex!].imageUrl}",
+                                  "http://10.0.2.2:8080/products/...${_products[_editIndex!].imageUrl}",
                                   fit: BoxFit.cover,
                                   loadingBuilder: (
                                     context,
@@ -296,7 +294,7 @@ class _ProductTablePageState extends State<ProductTablePage> {
 
     setState(() => _isLoading = true);
 
-    // Store context before async operation
+    
     final navigator = Navigator.of(context);
 
     try {
@@ -305,7 +303,7 @@ class _ProductTablePageState extends State<ProductTablePage> {
       Product product;
 
       if (_editIndex != null) {
-        // Update existing product
+        
         product = await _apiService.updateProduct(
           id: _products[_editIndex!].id,
           name: _nameController.text,
@@ -322,7 +320,7 @@ class _ProductTablePageState extends State<ProductTablePage> {
         setState(() => _products[_editIndex!] = product);
         _showSuccessSnackBar('Product updated successfully!');
       } else {
-        // Create new product
+      
         product = await _apiService.createProduct(
           name: _nameController.text,
           category: categoryText,
@@ -371,7 +369,7 @@ class _ProductTablePageState extends State<ProductTablePage> {
   }
 
   Future<void> _confirmDelete(int index) async {
-    Navigator.pop(context); // Close dialog
+    Navigator.pop(context);
 
     setState(() => _isLoading = true);
     try {
@@ -400,6 +398,15 @@ class _ProductTablePageState extends State<ProductTablePage> {
             onPressed: _loadProducts,
             tooltip: 'Refresh',
           ),
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'Logout',
+            onPressed: () {
+              Navigator.of(
+                context,
+              ).pushNamedAndRemoveUntil('/', (route) => false);
+            },
+          ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
@@ -412,14 +419,14 @@ class _ProductTablePageState extends State<ProductTablePage> {
               ? const Center(child: CircularProgressIndicator())
               : LayoutBuilder(
                 builder: (context, constraints) {
-                  // Responsive breakpoints
+                  
                   final isSmallScreen = constraints.maxWidth < 600;
                   final isMediumScreen =
                       constraints.maxWidth >= 600 &&
                       constraints.maxWidth < 1024;
 
                   if (isSmallScreen) {
-                    // Mobile layout - Card view
+                    
                     return _products.isEmpty
                         ? const Center(
                           child: Padding(
@@ -440,7 +447,7 @@ class _ProductTablePageState extends State<ProductTablePage> {
                           ),
                         );
                   } else if (isMediumScreen) {
-                    // Tablet layout - Grid view
+                    
                     return _products.isEmpty
                         ? const Center(
                           child: Text(
@@ -458,7 +465,7 @@ class _ProductTablePageState extends State<ProductTablePage> {
                           ),
                         );
                   } else {
-                    // Desktop layout - Table view
+                  
                     return _products.isEmpty
                         ? const Center(
                           child: Text(
