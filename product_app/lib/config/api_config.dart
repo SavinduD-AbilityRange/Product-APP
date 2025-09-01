@@ -2,9 +2,10 @@ import 'dart:io';
 
 class ApiConfig {
   // For Android Emulator - use 10.0.2.2 (standard Android emulator host)
-  static const String androidEmulatorUrl = 'http://10.0.2.2:8000';
+  static const String androidEmulatorUrl =
+      'http://10.0.2.2:8000'; // <-- updated
   // For iOS Simulator and other platforms
-  static const String defaultUrl = 'http://localhost:8000';
+  static const String defaultUrl = 'http://10.0.2.2:8000'; // <-- updated
 
   static bool get _isWeb {
     try {
@@ -47,32 +48,32 @@ class ApiConfig {
   static List<String> get fallbackUrls {
     if (_isWeb) {
       return [
-        'http://localhost:8000', // Primary for web
+        'http://10.0.2.2:8000', // <-- updated
+        'http://localhost:8000',
         'http://127.0.0.1:8000',
-        'http://192.168.8.132:8000', // Your computer's actual IP
       ];
     }
 
     try {
       if (Platform.isAndroid) {
         return [
-          'http://192.168.8.132:8000', // Your computer's actual IP (works with curl)
-          'http://10.0.2.2:8000', // Standard Android emulator host
-          'http://localhost:8000', // Fallback (usually doesn't work on Android)
+          'http://10.0.2.2:8000', // <-- updated
+          'http://10.0.2.2:8000',
+          'http://localhost:8000',
         ];
       } else {
         return [
-          'http://localhost:8000', // Primary for iOS/Desktop
+          'http://10.0.2.2:8000', // <-- updated
+          'http://localhost:8000',
           'http://127.0.0.1:8000',
-          'http://192.168.8.132:8000', // Your computer's actual IP
         ];
       }
     } catch (e) {
       // Fallback for test environment
       return [
+        'http://192.168.8.105:8000', // <-- updated
         'http://localhost:8000',
         'http://127.0.0.1:8000',
-        'http://192.168.8.132:8000',
       ];
     }
   } // Product endpoints
